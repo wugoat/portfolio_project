@@ -343,7 +343,6 @@ if ($action eq "base") {
   print "<input type='checkbox' name='individuals' /> Individuals<br />";
   #print "<input type='checkbox' name='opinions' /> Opinions";
   print "</div>";
-
   #
   #
   # And something to color (Red, White, or Blue)
