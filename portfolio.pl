@@ -154,8 +154,8 @@ if (defined($inputcookiecontent)) {
   ($user,$password) = split(/\//,$inputcookiecontent);
   $outputcookiecontent = $inputcookiecontent;
 } else {
-  # No cookie, treat as anonymous user
-  ($user,$password) = ("anon","anonanon");
+  # No cookie
+
 }
 
 #
@@ -323,32 +323,8 @@ if ($action eq "base") {
   };
 
 
-  # print out the cycles
-  print "<div id='cycles'>";
-  print "<h4>Cycles</h4>";
-  foreach (@rows) {
-    print "<input name='";
-    print $_;
-    print "' type='checkbox' checked='true' /> ";
-    print $_;
-    print "<br />";
-  }
+ 
 
-  print "</div>";
-
-  # Print out the checkboxes
-  print "<div id='checkboxes'>";
-  print "<input type='checkbox' name='committees' checked='checked' /> Committees<br />";
-  print "<input type='checkbox' name='candidates' /> Candidates<br />";
-  print "<input type='checkbox' name='individuals' /> Individuals<br />";
-  #print "<input type='checkbox' name='opinions' /> Opinions";
-  print "</div>";
-  #
-  #
-  # And something to color (Red, White, or Blue)
-  #
-  print "<div id=\"color\" style=\"width:100\%; height:10\%\"></div>";
-  
   #
   # And a div to populate with info about nearby stuff
   #
@@ -370,7 +346,7 @@ if ($action eq "base") {
   #
   #
   if ($user eq "anon") {
-    print "<p>You are anonymous, but you can also <a href=\"portfolio.pl?act=login\">login</a></p>";
+    print "<p>You are not signed in, but you can <a href=\"portfolio.pl?act=login\">login</a></p>";
   } else {
     print "<p>You are logged in as $user and can do the following:</p>";
     print "<p><a href=\"portfolio.pl?act=logout&run=1\">Logout</a></p>";
