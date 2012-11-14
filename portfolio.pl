@@ -77,7 +77,7 @@ my $dbpasswd="Qea42wvW";
 # The session cookie will contain the user's name and password so that 
 # he doesn't have to type it again and again. 
 #
-# "RWBSession"=>"user/password"
+# "portfolioSession"=>"user/password"
 #
 # BOTH ARE UNENCRYPTED AND THE SCRIPT IS ALLOWED TO BE RUN OVER HTTP
 # THIS IS FOR ILLUSTRATION PURPOSES.  IN REALITY YOU WOULD ENCRYPT THE COOKIE
@@ -253,11 +253,11 @@ print "<head>";
 print "<title>Portfolio Management</title>";
 
 # Include JQuery
-print "<script src=\"js/jquery-1.8.2.min.js\" type=\"text/javascript\"></script>";
+print "<script type=\"text/javascript\" src=\"js/jquery-1.8.2.min.js\"></script>";
 
 # import Twitter Bootstrap to pretty-ify things
 print "<link media=\"screen\" rel=\"stylesheet\" href=\"css/bootstrap.min.css\">";
-print "<script src=\"js/bootstrap.min.js\" type=\"text/javascript\"></script>";
+print "<script type=\"text/javascript\" src=\"js/bootstrap.min.js\"></script>";
 
 
 # The Javascript portion of our app
@@ -296,13 +296,13 @@ if ($action eq "login") {
   } 
   if ($logincomplain or !$run) { 
     print start_form(-name=>'Login'),
-      h2('Login to use your portfolio'),
-	"Name:",textfield(-name=>'user'),	p,
-	  "Password:",password_field(-name=>'password'),p,
-	    hidden(-name=>'act',default=>['login']),
-	      hidden(-name=>'run',default=>['1']),
-		submit,
-		  end_form;
+    h2('Login to use your portfolio'),
+    "Name:",textfield(-name=>'user'),	p,
+    "Password:",password_field(-name=>'password'),p,
+    hidden(-name=>'act',default=>['login']),
+    hidden(-name=>'run',default=>['1']),
+    submit,
+    end_form;
   }
 }
 
@@ -370,30 +370,11 @@ if ($action eq "base") {
   #
   #
   if ($user eq "anon") {
-    print "<p>You are anonymous, but you can also <a href=\"rwb.pl?act=login\">login</a></p>";
+    print "<p>You are anonymous, but you can also <a href=\"portfolio.pl?act=login\">login</a></p>";
   } else {
     print "<p>You are logged in as $user and can do the following:</p>";
-    if (UserCan($user,"give-opinion-data")) {
-      print "<p><a href=\"rwb.pl?act=give-opinion-data\">Give Opinion Of Current Location</a></p>";
-    }
-    if (UserCan($user,"give-cs-ind-data")) {
-      print "<p><a href=\"rwb.pl?act=give-cs-ind-data\">Geolocate Individual Contributors</a></p>";
-    }
-    if (UserCan($user,"manage-users") || UserCan($user,"invite-users")) {
-      print "<p><a href=\"rwb.pl?act=invite-user\">Invite User</a></p>";
-    }
-    if (UserCan($user,"manage-users") || UserCan($user,"add-users")) { 
-      print "<p><a href=\"rwb.pl?act=add-user\">Add User</a></p>";
-    } 
-    if (UserCan($user,"manage-users")) { 
-      print "<p><a href=\"rwb.pl?act=delete-user\">Delete User</a></p>";
-      print "<p><a href=\"rwb.pl?act=add-perm-user\">Add User Permission</a></p>";
-      print "<p><a href=\"rwb.pl?act=revoke-perm-user\">Revoke User Permission</a></p>";
-    }
-    print "<p><a href=\"rwb.pl?act=logout&run=1\">Logout</a></p>";
+    print "<p><a href=\"portfolio.pl?act=logout&run=1\">Logout</a></p>";
   }
-
-  print "<p id='aggcomm'></p>";
 
 }
 
@@ -478,39 +459,15 @@ if ($action eq "near") {
   }
 }
 
-
-if ($action eq "invite-user") { 
-  print h2("Invite a user!");
-  print "<form name='invite-user' method='get' action='rwb.pl?act=invite-user-post'>";
-  print "Email: <input type='text' id='userToInvite' />";
-  print "<input type='submit' />";
-  print "</form>";
-}
-
-if ($action eq "invite-user-post") {
-  print h2("woot!");
-}
-
-if ($action eq "give-opinion-data") { 
-  print h2("Giving Location Opinion Data Is Unimplemented");
-}
-
-if ($action eq "give-cs-ind-data") { 
-  print h2("Giving Crowd-sourced Individual Geolocations Is Unimplemented");
-}
-
 #
-# ADD-USER
+# Sign up
 #
 # User Add functionaltiy 
 #
 #
 #
 #
-if ($action eq "add-user") { 
-  if (!UserCan($user,"add-users") && !UserCan($user,"manage-users")) { 
-    print h2('You do not have the required permissions to add users.');
-  } else {
+if ($action eq "sign-up") { 
     if (!$run) { 
       print start_form(-name=>'AddUser'),
 	h2('Add User'),
@@ -534,60 +491,14 @@ if ($action eq "add-user") {
       if ($error) { 
 	print "Can't add user because: $error";
       } else {
-	print "Added user $name $email as referred by $user\n";
+	print "Added user $name $email\n";
       }
     }
-  }
-  print "<p><a href=\"rwb.pl?act=base&run=1\">Return</a></p>";
+  print "<p><a href=\"portfolio.pl?act=base&run=1\">Return</a></p>";
 }
 
-#
-# DELETE-USER
-#
-# User Delete functionaltiy 
-#
-#
-#
-#
-if ($action eq "delete-user") { 
-  if (!UserCan($user,"manage-users")) { 
-    print h2('You do not have the required permissions to delete users.');
-  } else {
-    if (!$run) { 
-      #
-      # Generate the add form.
-      #
-      print start_form(-name=>'DeleteUser'),
-	h2('Delete User'),
-	  "Name: ", textfield(-name=>'name'),
-	    p,
-	      hidden(-name=>'run',-default=>['1']),
-		hidden(-name=>'act',-default=>['delete-user']),
-		  submit,
-		    end_form,
-		      hr;
-    } else {
-      my $name=param('name');
-      my $error;
-      $error=UserDelete($name);
-      if ($error) { 
-	print "Can't delete user because: $error";
-      } else {
-	print "Deleted user $name\n";
-      }
-    }
-  }
-  print "<p><a href=\"rwb.pl?act=base&run=1\">Return</a></p>";
-}
-
-
-#
-#
-#
 #
 # Debugging output is the last thing we show, if it is set
-#
-#
 #
 #
 
@@ -654,7 +565,7 @@ sub UserTable {
 #
 sub UserAdd { 
   eval { ExecSQL($dbuser,$dbpasswd,
-		 "insert into portfolio_users (name,password,email,referer) values (?,?,?,?)",undef,@_);};
+		 "insert into portfolio_users (name,password,email) values (?,?,?,?)",undef,@_);};
   return $@;
 }
 
@@ -663,7 +574,7 @@ sub UserAdd {
 # returns false on success, $error string on failure
 # 
 sub UserDel { 
-  eval {ExecSQL($dbuser,$dbpasswd,"delete from portfolio_users where name=?", undef, @_);};
+  eval {ExecSQL($dbuser,$dbpasswd,"delete from portfolio_users where email=?", undef, @_);};
   return $@;
 }
 
