@@ -253,7 +253,7 @@ print "<head>";
 print "<title>Portfolio Management</title>";
 
 # Include JQuery
-print "<script src=\"http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js\" type=\"text/javascript\"></script>";
+print "<script src=\"js/jquery-1.8.2.min.js\" type=\"text/javascript\"></script>";
 
 # import Twitter Bootstrap to pretty-ify things
 print "<link media=\"screen\" rel=\"stylesheet\" href=\"css/bootstrap.min.css\">";
