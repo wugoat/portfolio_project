@@ -152,7 +152,7 @@ $outputdebugcookiecontent=$debug;
 #
 if (defined($inputcookiecontent)) { 
   # Has cookie, let's decode it
-  ($email,$passwd) = split(/\//,$inputcookiecontent);
+  ($email,$passwd,$user) = split(/\//,$inputcookiecontent);
   $outputcookiecontent = $inputcookiecontent;
 } else {
   # No cookie
@@ -289,6 +289,7 @@ print "<div class=\"navbar navbar-fixed-top\">";
           print "<li><a href=\"portfolio.pl?act=login\">Sign In</a></li>";
         }
         else {
+          print "<li style=\"margin-top:10px; margin-right:115px\">You are logged in as $user</li>";
           print "<li><a href=\"portfolio.pl?act=logout&run=1\">Sign Out</a></li>";
         }
       print "</ul>";
