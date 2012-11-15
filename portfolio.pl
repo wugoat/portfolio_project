@@ -181,6 +181,8 @@ if ($action eq "login") {
       $outputcookiecontent=join("/",$email,$passwd,$user);
       $action = "base";
       $run = 1;
+      
+            
     } else {
       # uh oh.  Bogus login attempt.  Make him try again.
       # don't give him a cookie
@@ -373,6 +375,9 @@ if ($action eq "base") {
     print "<p>You are not signed in, but you can <a href=\"portfolio.pl?act=login\">login</a></p>";
   } else {
     print "<p>You are logged in as $user</p>";
+    
+    my $type = 'plot';
+    print "See this stock's performance at <a href=\"plot_stock?type=plot\">here!</a>";
   }
 
 }
