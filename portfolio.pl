@@ -332,6 +332,7 @@ if ($action eq "login") {
     hidden(-name=>'run',default=>['1']),
     submit,
     end_form;
+    print "<p>Not registered? <a href=\"portfolio.pl?act=sign-up\">Sign up here</a></p>";
   }
 }
 
@@ -485,14 +486,13 @@ if ($action eq "sign-up") {
       my $email=param('email');
       my $password=param('password');
       my $error;
-      $error=UserAdd($name,$password,$email,$user);
+      $error=UserAdd($name,$password,$email);
       if ($error) { 
-	print "Can't add user because: $error";
+	     print "Can't add user because: $error";
       } else {
-	print "Added user $name $email\n";
+	     print "$name was successfully signed up! Now <a href=\"portfolio.pl?act=login\">log in to start managing your portfolio!</a>\n";
       }
     }
-  print "<p><a href=\"portfolio.pl?act=base&run=1\">Return</a></p>";
 }
 
 #
@@ -566,7 +566,7 @@ sub UserTable {
 #
 sub UserAdd { 
   eval { ExecSQL($dbuser,$dbpasswd,
-		 "insert into portfolio_users (name,password,email) values (?,?,?,?)",undef,@_);};
+		 "insert into portfolio_users (name,passwd,email) values (?,?,?)",undef,@_);};
   return $@;
 }
 
