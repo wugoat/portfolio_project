@@ -212,6 +212,8 @@ if ($action eq "logout") {
 
 my @outputcookies;
 
+my @portfolios = GetPortfolios();
+
 #
 # OK, so now we have user/password
 # and we *may* have an output cookie.   If we have a cookie, we'll send it right 
@@ -360,8 +362,7 @@ if ($action eq "base") {
     print "<div id=\"data\" style=\"display: none;\"></div>";
   }
 
-
-# height=1024 width=1024 id=\"info\" name=\"info\" onload=\"UpdateMap()\"></iframe>";
+  #print img{src=>'plot_stock.pl?type=plot', height=>50, width=>60};
   
 
   #
@@ -370,9 +371,15 @@ if ($action eq "base") {
   #
   if (!$email) {
     print "<p>You are not signed in, but you can <a href=\"portfolio.pl?act=login\">login</a></p>";
-  } else {
+  } 
+  else {
     print "<p>You are logged in as $user</p>";
-    print "<p>Add a portfolio <a href=\"portfolio.pl?act=add-portfolio\">here</a> to get started.";
+    if (($#portfolios + 1) < 1) {
+      print "<p>Add a portfolio <a href=\"portfolio.pl?act=add-portfolio\">here</a> to get started.";
+    }
+    else {
+      print @portfolios;
+    }
   }
 
 }
@@ -594,6 +601,14 @@ sub PortfolioAdd {
     ExecSQL($dbuser, $dbpasswd, "insert into portfolios (name, cash, user_email) values (?,?,?)",undef, @_);
   };
   return $@;
+}
+
+sub GetPortfolios {
+  my @rows;
+  eval {
+    @rows = ExecSQL($dbuser, $dbpasswd, "select * from portfolios where user_email=?", undef, $email);
+  };
+  return @rows;
 }
 
 #
