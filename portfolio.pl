@@ -102,7 +102,8 @@ my $outputcookiecontent = undef;
 my $outputdebugcookiecontent = undef;
 my $deletecookie=0;
 my $user = undef;
-my $password = undef;
+my $email = undef;
+my $passwd = undef;
 my $logincomplain=0;
 
 #
@@ -151,7 +152,7 @@ $outputdebugcookiecontent=$debug;
 #
 if (defined($inputcookiecontent)) { 
   # Has cookie, let's decode it
-  ($user,$password) = split(/\//,$inputcookiecontent);
+  ($email,$passwd) = split(/\//,$inputcookiecontent);
   $outputcookiecontent = $inputcookiecontent;
 } else {
   # No cookie
@@ -170,14 +171,14 @@ if ($action eq "login") {
     # Ignore any input cookie.  Just validate user and
     # generate the right output cookie, if any.
     #
-    ($user,$password) = (param('user'),param('password'));
-    if (ValidUser($user,$password)) { 
+    ($email,$passwd) = (param('email'),param('passwd'));
+    if (ValidUser($email,$passwd)) { 
       # if the user's info is OK, then give him a cookie
-      # that contains his username and password 
+      # that contains his email and password 
       # the cookie will expire in one hour, forcing him to log in again
       # after one hour of inactivity.
       # Also, land him in the base query screen
-      $outputcookiecontent=join("/",$user,$password);
+      $outputcookiecontent=join("/",$email,$passwd,$user);
       $action = "base";
       $run = 1;
     } else {
@@ -193,7 +194,7 @@ if ($action eq "login") {
     # we were given
     #
     undef $inputcookiecontent;
-    ($user,$password)=("anon","anonanon");
+    ($user,$passwd,$email)=(undef,undef,undef);
   }
 } 
 
@@ -205,8 +206,9 @@ if ($action eq "login") {
 if ($action eq "logout") {
   $deletecookie=1;
   $action = "base";
-  $user = "anon";
-  $password = "anonanon";
+  $user = undef;
+  $passwd = undef;
+  $email = undef;
   $run = 1;
 }
 
@@ -275,6 +277,33 @@ print "<body style=\"height:100\%;margin:0\">";
 print "<center>" if !$debug;
 
 
+# THE HEADER
+print "<div class=\"navbar navbar-fixed-top\">";
+  print "<div class=\"navbar-inner\">";
+    print "<div class=\"container\">";
+      print "<ul class=\"nav\">";
+        print "<li><a href=\"portfolio.pl\" style=\"font-weight:bold; margin-left:-100px\">Portfolio Manager</a></li>";
+      print "</ul>";
+      print "<ul class=\"nav pull-right\">";
+        if (!$email) {
+          print "<li><a href=\"portfolio.pl?act=login\">Sign In</a></li>";
+        }
+        else {
+          print "<li><a href=\"portfolio.pl?act=logout&run=1\">Sign Out</a></li>";
+        }
+      print "</ul>";
+    print "</div>";
+  print "</div>";
+print "</div>";
+
+#
+#
+# Wrapping all future HTML in a div to offset it for the header
+#
+#
+
+print "<div style=\"margin-top:50px\">";
+
 #
 #
 # The remainder here is essentially a giant switch statement based
@@ -297,8 +326,8 @@ if ($action eq "login") {
   if ($logincomplain or !$run) { 
     print start_form(-name=>'Login'),
     h2('Login to use your portfolio'),
-    "Name:",textfield(-name=>'user'),	p,
-    "Password:",password_field(-name=>'password'),p,
+    "Email:",textfield(-name=>'email'),	p,
+    "Password:",password_field(-name=>'passwd'),p,
     hidden(-name=>'act',default=>['login']),
     hidden(-name=>'run',default=>['1']),
     submit,
@@ -317,13 +346,6 @@ if ($action eq "login") {
 #
 if ($action eq "base") { 
 
-  my @rows;
-  eval { 
-    @rows = ExecSQL($dbuser, $dbpasswd, "select distinct cycle from cs339.committee_master", "COL");
-  };
-
-
- 
 
   #
   # And a div to populate with info about nearby stuff
@@ -345,11 +367,10 @@ if ($action eq "base") {
   # User mods
   #
   #
-  if ($user eq "anon") {
+  if (!$email) {
     print "<p>You are not signed in, but you can <a href=\"portfolio.pl?act=login\">login</a></p>";
   } else {
-    print "<p>You are logged in as $user and can do the following:</p>";
-    print "<p><a href=\"portfolio.pl?act=logout&run=1\">Logout</a></p>";
+    print "<p>You are logged in as $user</p>";
   }
 
 }
@@ -362,6 +383,7 @@ if ($action eq "base") {
 # Nearby committees, candidates, individuals, and opinions
 #
 #
+
 # Note that the individual data should integrate the FEC data and the more
 # precise crowd-sourced location data.   The opinion data is completely crowd-sourced
 #
@@ -445,8 +467,8 @@ if ($action eq "near") {
 #
 if ($action eq "sign-up") { 
     if (!$run) { 
-      print start_form(-name=>'AddUser'),
-	h2('Add User'),
+      print start_form(-name=>'Sign Up'),
+	h2('Sign Up'),
 	  "Name: ", textfield(-name=>'name'),
 	    p,
 	      "Email: ", textfield(-name=>'email'),
@@ -454,7 +476,7 @@ if ($action eq "sign-up") {
 		  "Password: ", textfield(-name=>'password'),
 		    p,
 		      hidden(-name=>'run',-default=>['1']),
-			hidden(-name=>'act',-default=>['add-user']),
+			hidden(-name=>'act',-default=>['sign-up']),
 			  submit,
 			    end_form,
 			      hr;
@@ -505,6 +527,9 @@ if ($debug) {
 
 
 }
+
+# end container div
+  print "</div>";
 
 print end_html;
 
@@ -558,16 +583,19 @@ sub UserDel {
 #
 # Check to see if user and password combination exist
 #
-# $ok = ValidUser($user,$password)
+# $ok = ValidUser($email,$passwd)
 #
 #
 sub ValidUser {
-  my ($email,$password)=@_;
+  my ($email,$passwd)=@_;
   my @col;
-  eval {@col=ExecSQL($dbuser,$dbpasswd, "select count(*) from portfolio_users where email=? and password=?","COL",$email,$password);};
+  my @name;
+  eval {@col=ExecSQL($dbuser,$dbpasswd, "select count(*) from portfolio_users where email=? and passwd=?","COL",$email,$passwd);};
   if ($@) { 
     return 0;
   } else {
+    eval {@name = ExecSQL($dbuser, $dbpasswd, "select name from portfolio_users where email=? and passwd=?", "ROW", $email, $passwd);};
+    $user = $name[$0];
     return $col[0]>0;
   }
 }
