@@ -372,6 +372,7 @@ if ($action eq "base") {
     print "<p>You are not signed in, but you can <a href=\"portfolio.pl?act=login\">login</a></p>";
   } else {
     print "<p>You are logged in as $user</p>";
+    print "<p>Add a portfolio <a href=\"portfolio.pl?act=add-portfolio\">here</a> to get started.";
   }
 
 }
@@ -495,6 +496,31 @@ if ($action eq "sign-up") {
     }
 }
 
+if ($action eq "add-portfolio") {
+  if (!$run) {
+    print start_form(-name=>'Add Portfolio'),
+    h2('Add Portfolio'),
+    "Portfolio Name:", textfield(-name=>'portfolio_name'), p,
+    "Starting Cash:", textfield(-name=>'cash'), p,
+    hidden(-name=>'run', -default=>['1']),
+    hidden(-name=>'act', -default=>['add-portfolio']),
+    submit
+    end_form, hr;
+  }
+  else {
+    my $portfolio_name = param('portfolio_name');
+    my $cash = param('cash');
+    my $error;
+    $error = PortfolioAdd($portfolio_name, $cash, $email);
+    if ($error) {
+      print "Couldn't create portfolio because: $error";
+    }
+    else {
+      print "Portfolio $portfolio_name was successfully created! Go <a href=\"portfolio.pl\">here</a> to view your new portfolio.";
+    }
+  }
+}
+
 #
 # Debugging output is the last thing we show, if it is set
 #
@@ -554,6 +580,20 @@ sub UserTable {
 		     ["Name", "Email"],
 		     @rows),$@);
   }
+}
+
+#
+# Add a portfolio
+# call with portfolio_name, cash
+#
+# returns false on success, error string on failure
+#
+# PortfolioAdd($portfolio_name, $cash, $email)
+sub PortfolioAdd {
+  eval {
+    ExecSQL($dbuser, $dbpasswd, "insert into portfolios (name, cash, user_email) values (?,?,?)",undef, @_);
+  };
+  return $@;
 }
 
 #
