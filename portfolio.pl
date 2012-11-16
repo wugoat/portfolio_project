@@ -378,7 +378,7 @@ if ($action eq "base") {
     my $type = 'plot';
     print "See this stock's performance at <a href=\"plot_stock?type=plot\">here!</a>";
   }
-
+    print img{src=>'plot_stock.pl?type=plot', height=>"30", width=>"36"};
 }
 
 #
