@@ -214,6 +214,8 @@ if ($action eq "logout") {
 
 my @outputcookies;
 
+my @portfolios = GetPortfolios();
+
 #
 # OK, so now we have user/password
 # and we *may* have an output cookie.   If we have a cookie, we'll send it right 
@@ -362,8 +364,7 @@ if ($action eq "base") {
     print "<div id=\"data\" style=\"display: none;\"></div>";
   }
 
-
-# height=1024 width=1024 id=\"info\" name=\"info\" onload=\"UpdateMap()\"></iframe>";
+  #print img{src=>'plot_stock.pl?type=plot', height=>50, width=>60};
   
 
   #
@@ -372,11 +373,21 @@ if ($action eq "base") {
   #
   if (!$email) {
     print "<p>You are not signed in, but you can <a href=\"portfolio.pl?act=login\">login</a></p>";
-  } else {
+  } 
+  else {
     print "<p>You are logged in as $user</p>";
+#<<<<<<< HEAD
     
     my $type = 'plot';
     print "See this stock's performance at <a href=\"plot_stock?type=plot\">here!</a>";
+#=======
+    if (($#portfolios + 1) < 1) {
+      print "<p>Add a portfolio <a href=\"portfolio.pl?act=add-portfolio\">here</a> to get started.";
+    }
+    else {
+      print @portfolios;
+    }
+#>>>>>>> b4c8f098007ed76bba63c969e451a9631e8fb1bc
   }
     print img{src=>'plot_stock.pl?type=plot', height=>"30", width=>"36"};
 }
@@ -500,6 +511,31 @@ if ($action eq "sign-up") {
     }
 }
 
+if ($action eq "add-portfolio") {
+  if (!$run) {
+    print start_form(-name=>'Add Portfolio'),
+    h2('Add Portfolio'),
+    "Portfolio Name:", textfield(-name=>'portfolio_name'), p,
+    "Starting Cash:", textfield(-name=>'cash'), p,
+    hidden(-name=>'run', -default=>['1']),
+    hidden(-name=>'act', -default=>['add-portfolio']),
+    submit
+    end_form, hr;
+  }
+  else {
+    my $portfolio_name = param('portfolio_name');
+    my $cash = param('cash');
+    my $error;
+    $error = PortfolioAdd($portfolio_name, $cash, $email);
+    if ($error) {
+      print "Couldn't create portfolio because: $error";
+    }
+    else {
+      print "Portfolio $portfolio_name was successfully created! Go <a href=\"portfolio.pl\">here</a> to view your new portfolio.";
+    }
+  }
+}
+
 #
 # Debugging output is the last thing we show, if it is set
 #
@@ -559,6 +595,28 @@ sub UserTable {
 		     ["Name", "Email"],
 		     @rows),$@);
   }
+}
+
+#
+# Add a portfolio
+# call with portfolio_name, cash
+#
+# returns false on success, error string on failure
+#
+# PortfolioAdd($portfolio_name, $cash, $email)
+sub PortfolioAdd {
+  eval {
+    ExecSQL($dbuser, $dbpasswd, "insert into portfolios (name, cash, user_email) values (?,?,?)",undef, @_);
+  };
+  return $@;
+}
+
+sub GetPortfolios {
+  my @rows;
+  eval {
+    @rows = ExecSQL($dbuser, $dbpasswd, "select * from portfolios where user_email=?", undef, $email);
+  };
+  return @rows;
 }
 
 #
