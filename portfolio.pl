@@ -44,6 +44,11 @@ use DBI;
 #
 use Time::ParseDate;
 
+#
+# 
+#
+use Time::Local;
+
 BEGIN {
   $ENV{PORTF_DBMS}="oracle";
   $ENV{PORTF_DB}="cs339";
@@ -178,8 +183,6 @@ if ($action eq "login") {
       $outputcookiecontent=join("/",$email,$passwd,$user);
       $action = "base";
       $run = 1;
-      
-            
     } else {
       # uh oh.  Bogus login attempt.  Make him try again.
       # don't give him a cookie
@@ -214,7 +217,6 @@ if ($action eq "logout") {
 
 my @outputcookies;
 
-my @portfolios = GetPortfolios();
 
 #
 # OK, so now we have user/password
@@ -274,9 +276,7 @@ print "</head>";
 print "<body style=\"height:100\%;margin:0\">";
 
   
-
-print "<center>" if !$debug;
-
+my @portfolios = GetPortfolios();
 
 # THE HEADER
 print "<div class=\"navbar navbar-fixed-top\">";
@@ -293,6 +293,19 @@ print "<div class=\"navbar navbar-fixed-top\">";
           print "<li><a href=\"portfolio.pl?act=login\">Sign In</a></li>";
         }
         else {
+          print "<li class=\"dropdown\">";
+            print "<a class=\"dropdown-toggle\" data-toggle=\"dropdown\" href=\"#\">Portfolios<b class=\"caret\"></b></a>";
+              print "<ul class=\"dropdown-menu\" role=\"menu\" aria-labelledby=\"dLabel\">";
+                if (($#portfolios + 1) >= 1) {
+                  foreach (@portfolios) {
+                    print "<li><a href=\"portfolio.pl?act=portfolio-view&portfolio=$_\">$_</a></li>";
+                  }
+                }
+                print "<li class=\"divider\"></li>";
+                print "<li><a class=\"btn btn-success\" href=\"portfolio.pl?act=add-portfolio\">Add</a></li>";
+              print "</ul>";
+            print "</a>";
+          print "</li>";
           print "<li><a href=\"portfolio.pl?act=logout&run=1\">Sign Out</a></li>";
         }
       print "</ul>";
@@ -306,7 +319,7 @@ print "</div>";
 #
 #
 
-print "<div style=\"margin-top:50px\">";
+print "<div style=\"margin-top:50px; margin-left:8%; width:75%;\" class=\"hero-unit\">";
 
 #
 #
@@ -324,6 +337,7 @@ print "<div style=\"margin-top:50px\">";
 # 
 #
 if ($action eq "login") { 
+  print "<div style=\"text-align:center\">";
   if ($logincomplain) { 
     print "Login failed.  Try again.<p>"
   } 
@@ -338,6 +352,7 @@ if ($action eq "login") {
     end_form;
     print "<p>Not registered? <a href=\"portfolio.pl?act=sign-up\">Sign up here</a></p>";
   }
+  print "</div>";
 }
 
 
@@ -351,47 +366,158 @@ if ($action eq "login") {
 #
 if ($action eq "base") { 
 
-
-  #
-  # And a div to populate with info about nearby stuff
-  #
-  #
-  if ($debug) {
-    # visible if we are debugging
-    print "<div id=\"data\" style=\:width:100\%; height:10\%\"></div>";
-  } else {
-    # invisible otherwise
-    print "<div id=\"data\" style=\"display: none;\"></div>";
-  }
-
   #print img{src=>'plot_stock.pl?type=plot', height=>50, width=>60};
   
-
   #
   # User mods
   #
   #
   if (!$email) {
-    print "<p>You are not signed in, but you can <a href=\"portfolio.pl?act=login\">login</a></p>";
+    print "<h2 class=\"page-title\">You are not signed in, but you can <a href=\"portfolio.pl?act=login\">login</a></h2>";
   } 
   else {
-    print "<p>You are logged in as $user</p>";
-#<<<<<<< HEAD
-    
-    my $type = 'plot';
-    print "See this stock's performance at <a href=\"plot_stock?type=plot\">here!</a>";
-#=======
+    print "<h2 class=\"page-title\">Welcome to Portfolio Manager!</h2>";
     if (($#portfolios + 1) < 1) {
       print "<p>Add a portfolio <a href=\"portfolio.pl?act=add-portfolio\">here</a> to get started.";
     }
     else {
-      print @portfolios;
+      print "<p>Below are your portfolios, click to access them and view/modify their contents:</p>";
+      foreach (@portfolios) {
+        print "<li><a href=\"portfolio.pl?act=portfolio-view&portfolio=$_\">$_</a></li>";
+        print "</br>";
+      }
+      print "<a style=\"margin-top:15px\" class=\"btn btn-success\" href=\"portfolio.pl?act=add-portfolio\">Add another portfolio</a>";
     }
-#>>>>>>> b4c8f098007ed76bba63c969e451a9631e8fb1bc
   }
-    print img{src=>'plot_stock.pl?type=plot', height=>"30", width=>"36"};
+
 }
 
+#
+# PORTFOLIO VIEW
+#
+
+if ($action eq "portfolio-view") {
+  my $portfolio = param("portfolio");
+  print "<h2 class=\"page-title\">Manage $portfolio portfolio:</h2>";
+  my @cash = ExecSQL($dbuser,$dbpasswd, "select cash from portfolios where name=? and user_email=?", "ROW", $portfolio, $email);
+  print "You have \$$cash[$0] in this portfolio's cash account </br>";
+  my @stocks = GetStocks($portfolio);
+  foreach (@stocks) {
+    print "<li><a href=\"#\">$_</a></li>";
+    print "</br>";
+  } 
+  print "<a href=\"portfolio.pl?act=show_stock&&stock=AAPL\">AAPL</a></br>";
+  print "<a href=\"portfolio.pl?act=portfolio-transaction&portfolio=$portfolio\">Buy or sell stock.</a>";
+}
+
+#
+# PORTFOLIO TRANSACTION VIEW (Buy or sell stock)
+#
+if ($action eq "portfolio-transaction") {
+  my $portfolio = param("portfolio");
+  my $portfolio
+  print "<h2 class=\"page-title\">Buy or sell stock</h2>";
+}
+
+#
+# show information of a chosen stock
+#
+
+if ($action eq "show_stock") {
+  if(!$run){
+  my $stock = param('stock'); 
+
+  # the minimal timestamp of this stock 
+  my  @timestamps = ExecSQL($dbuser, $dbpasswd, "select min(timestamp) from cs339.stocksdaily where symbol=rpad(?, 16)",undef, $stock);
+  my $min_timestamp = $timestamps[0];
+
+  # get the year of minimal timestamp
+  my $stock_startyear = (localtime(${$min_timestamp}[0]))[5]+1900;  
+  my $time = time;
+  my $stock_currentyear = (localtime($time))[5]+1900;
+
+  # construct years range
+  my @stock_years = ($stock_startyear..$stock_currentyear);
+
+  # construct months range
+  #my @stock_months = ('January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'Semptember', 'October', 'Novermber', 'December');
+  my @stock_months = (01..12);
+  # construct days range
+  my @stock_days = (1..31);
+
+  print start_form(-method=>'POST',
+                   -action=>'/~nwu583/portfolio/plot_stock.pl?'
+                  );
+  print "From: ";
+  print popup_menu(-name=>'start_year',
+                   -value=>\@stock_years,
+		   -style=>'width:80px'
+                  );
+
+  print popup_menu(-name=>'start_month',
+                   -value=>\@stock_months,
+                   -style=>'width:80px'
+                  );
+
+   print popup_menu(-name=>'start_day',
+                   -value=>\@stock_days,
+                   -style=>'width:80px'
+                  );
+  print "</br>To: &nbsp&nbsp&nbsp&nbsp";
+  print popup_menu(-name=>'end_year',
+                   -value=>\@stock_years,
+		   -style=>'width:80px'
+                  );
+
+  print popup_menu(-name=>'end_month',
+                   -value=>\@stock_months,
+                   -style=>'width:80px'
+                  );
+
+   print popup_menu(-name=>'end_day',
+                   -value=>\@stock_days,
+                   -style=>'width:80px'
+                  );
+   print "</br>Type:&nbsp";
+   print popup_menu(-name=>'type',
+                    -value=>['text','plot'],
+                    -style=>'width:80px'
+                   );
+   print hidden(-name=>'symbol',
+                -default=>$stock
+               );
+   print hidden(-name=>'act',
+                -default=>['show_stock']
+               ); 
+   print hidden(-name=>'run',
+                -default=>['1']
+               ); 
+   print submit(-name=>"show-plot",
+                -value=>"Show Plot"
+               );
+   print end_form;
+  }else{
+    my $stock = param('stock');
+    my $type =param('type');
+    my $start_year = param('start_year');
+    my $start_month = param('start_month');
+    my $start_day = param('start_day');
+    my $end_year = param('end_year');
+    my $end_month = param('end_month');
+    my $end_day = param('end_day');
+    
+    # 
+    # construct start and end date, then use timelocal function to convert     # to Unix time.
+    #
+    my @start_date = (0,0,0,$start_day, $start_month, $start_year);
+    my @end_date = (0,0,0, $end_day, $end_month, $end_year);
+    my $start_timestamp = timelocal(@start_date);
+    my $end_timestamp = timelocal(@end_date);
+    
+    my $cgi = new CGI;
+    print $cgi->redirect(-uri=> "http://murphy.wot.eecs.northwestern.edu/~nwu583/portfolio/plot_stock.pl?type=$type&&stock=$stock&&start=$start_timestamp&&end=$end_timestamp"); 
+  }
+}
 #
 #
 # NEAR
@@ -519,7 +645,7 @@ if ($action eq "add-portfolio") {
     "Starting Cash:", textfield(-name=>'cash'), p,
     hidden(-name=>'run', -default=>['1']),
     hidden(-name=>'act', -default=>['add-portfolio']),
-    submit
+    submit,
     end_form, hr;
   }
   else {
@@ -614,7 +740,23 @@ sub PortfolioAdd {
 sub GetPortfolios {
   my @rows;
   eval {
-    @rows = ExecSQL($dbuser, $dbpasswd, "select * from portfolios where user_email=?", undef, $email);
+    @rows = ExecSQL($dbuser, $dbpasswd, "select name from portfolios where user_email=?", "COL", $email);
+  };
+  return @rows;
+}
+
+sub StockBuy {
+
+}
+
+sub StockSell {
+
+}
+
+sub GetStocks {
+  my @rows;
+  eval {
+    @rows = ExecSQL($dbuser, $dbpasswd, "select symbol from holdings where portfolio_name=? and user_email=?", "COL", @_, $email);
   };
   return @rows;
 }

@@ -5,6 +5,7 @@ use strict;
 use CGI qw(:standard);
 use DBI;
 use Time::ParseDate;
+use Time::Local;
 
 BEGIN {
   $ENV{PORTF_DBMS}="oracle";
@@ -26,7 +27,18 @@ BEGIN {
 use stock_data_access;
 
 my $type = param('type');
-my $symbol = param('symbol');
+my $symbol = param('symbol'); 
+my $start_year = param('start_year');
+my $start_month = param('start_month');
+my $start_day =param('start_day');
+my $end_year = param('end_year');
+my $end_month = param('end_month');
+my $end_day = param('end_day');
+
+my @start_date = (0,0,0, $start_day, $start_month, $start_year);
+my @end_date = (0,0,0, $end_day, $end_month, $end_year);
+my $start_timestamp = timelocal(@start_date);
+my $end_timestamp = timelocal(@end_date);
 
 if (!defined($type) || $type eq "text" || !($type eq "plot") ) { 
   print header(-type => 'text/html', -expires => '-1h' );
@@ -54,7 +66,7 @@ if (!defined($type) || $type eq "text" || !($type eq "plot") ) {
 }
 
 
-my @rows = ExecStockSQL("2D","select timestamp, close from ".GetStockPrefix()."StocksDaily where symbol=rpad(?,16)",$symbol);
+my @rows = ExecStockSQL("2D","select timestamp, close from ".GetStockPrefix()."StocksDaily where symbol=rpad(?,16) and timestamp between ? and ?",$symbol, $start_timestamp, $end_timestamp);
 
 if ($type eq "text") { 
   print "<pre>";
